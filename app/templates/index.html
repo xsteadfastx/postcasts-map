@@ -1,0 +1,181 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+	{{super()}}
+	<link rel="stylesheet" href="{{url_for('.static', filename='css/style.css')}}">
+	<link rel="stylesheet" href="{{url_for('.static', filename='css/MarkerCluster.css')}}">
+	<link rel="stylesheet" href="{{url_for('.static', filename='css/MarkerCluster.Default.css')}}">
+	<link rel="stylesheet" href="{{url_for('.static', filename='css/jquery.fancybox.css')}}">
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+{% endblock %}
+
+{% block title %}PostCasts{% endblock %}
+{% block scripts %}
+	{{super()}}
+	<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+	<script src="{{ url_for('.static', filename='js/leaflet.markercluster-src.js') }}"></script>
+	<script src="{{ url_for('.static', filename='js/leaflet-hash.js') }}"></script>
+	<script src="{{ url_for('.static', filename='js/jquery.fancybox.pack.js') }}"></script>
+	<script>
+		var map = L.map('map', { zoomControl: false  }).setView([51.505, -0.09], 3);
+
+		L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'examples.map-i86knfo3'
+		}).addTo(map);
+
+		function onEachFeature(feature, layer) {
+			if (feature.properties && feature.properties.popupContent) {
+				layer.bindPopup(feature.properties.popupContent);
+			}
+		};
+
+		var geoJsonMarkerOptions = {
+			radius: 8,
+			fillColor: "#ff7800",
+			color: "#000",
+			weight: 1,
+			opacity: 1,
+			fillOpacity: 0.8
+		};
+
+		var mailIcon = L.icon({
+			iconUrl: 'static/images/mail.png',
+			iconSize: [30, 23],
+			iconAnchor: [13, 11],
+			popupAnchor: [0, 0]
+		});
+
+		var geoJsonData = {{ geostuff|safe }}
+
+		var geoJsonLayer = L.geoJson(geoJsonData, {
+			onEachFeature: onEachFeature,
+			pointToLayer: function (feature, latlng) {
+				return L.marker(latlng, {icon: mailIcon});
+			}
+		});
+
+		var markers = L.markerClusterGroup();
+
+		markers.addLayer(geoJsonLayer);
+
+		map.addLayer(markers);
+
+		var hash = new L.Hash(map);
+
+		new L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+	</script>
+	{% if get_flashed_messages() %}
+	<script>
+		$('#flashModal').modal('show');
+	</script>
+	{% endif %}
+	{% if form.errors %}
+	<script>
+		$('#addModal').modal('show');
+	</script>
+	{% endif %}
+	<script>
+		$(document).ready(function() {
+			$('.fancybox').fancybox();
+		});
+	</script>
+{% endblock %}
+{% block content %}
+	{% include "navbar.html" %}
+	<div id="map"></div>
+
+	<!-- About Modal -->
+	<div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+				 	<h4 class="modal-title" id="aboutModalLabel">About</h4>
+				</div>
+			 	<div class="modal-body">
+					<a href="https://github.com/xsteadfastx/postcasts-map"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/c6286ade715e9bea433b4705870de482a654f78a/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f77686974655f6666666666662e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_white_ffffff.png"></a>
+					{% with messages = get_flashed_messages(with_categories=true) %}
+						{% if messages %}
+							{% for category, message in messages %}
+							<div class="alert alert-{{ category }}">
+								<button type="button" class="close" data-dismiss="alert">&times;</button>
+								<strong>{{ message }}</strong>
+							</div>
+							{% endfor %}
+						{% endif %}
+					{% endwith %}
+					<div class="text-center">
+						<p><img src="/static/images/logo.png"></p>
+						<button type="button" class="btn btn-default" data-dismiss="modal">Browse</button>
+						<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addModal" data-dismiss="modal">Add Postcard</button>
+					</div>
+			 	</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Add Modal -->
+	<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+				 	<h4 class="modal-title" id="addModalLabel">Add Postcard</h4>
+				</div>
+			 	<div class="modal-body">
+					<div class="text-center">
+					<form class="form-inline" role="form" action="" method="POST" enctype="multipart/form-data">
+						{{ form.hidden_tag() }}
+						<h4><strong>Name</strong></h4>
+						<p>{{ wtf.form_field(form.name) }}</p>
+						<hr />
+						<h4><strong>Lat</strong></h4>
+						<p>{{ wtf.form_field(form.lat_ddd) }}&deg; {{ wtf.form_field(form.lat_mmmmm) }} {{ wtf.form_field(form.lat_h) }}</p>
+						<h4><strong>Lng</strong></h4>
+						<p>{{ wtf.form_field(form.lng_ddd) }}&deg; {{ wtf.form_field(form.lng_mmmmm) }} {{ wtf.form_field(form.lng_h) }}</p>
+						<hr />
+						<h4><strong>Front</strong></h4>
+						<p>{{ wtf.form_field(form.front) }}</p>
+						<h4></strong>Back</strong></h4>
+						<p>{{ wtf.form_field(form.back) }}</p>
+						<hr />
+						<p>{{ wtf.form_field(form.recaptcha) }}</p>
+						<p><button type="submit" class="btn btn-primary" value="name">Submit</button></p>
+					</form>
+					</div>
+			 	</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Flash Modal -->
+	<div class="modal fade" id="flashModal" tabindex="-1" role="dialog" aria-labelledby="flashModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+				 	<h4 class="modal-title" id="flashModalLabel">Welcome</h4>
+				</div>
+			 	<div class="modal-body">
+					{% with messages = get_flashed_messages(with_categories=true) %}
+						{% if messages %}
+							{% for category, message in messages %}
+							<div class="alert alert-{{ category }}">
+								<button type="button" class="close" data-dismiss="alert">&times;</button>
+								<strong>{{ message }}</strong>
+							</div>
+							{% endfor %}
+						{% endif %}
+					{% endwith %}
+			 	</div>
+			</div>
+		</div>
+	</div>
+
+{% endblock %}

@@ -1,0 +1,12 @@
+# name of the site
+SITENAME = 'postcasts'
+
+# db location
+DB_URI = 'sqlite:///test.db'
+
+# best key created with `os.urandom(24)`
+SECRET_KEY = 'mysupersweetrandomkey'
+
+# recaptcha stuff
+RECAPTCHA_PUBLIC_KEY = ''
+RECAPTCHA_PRIVATE_KEY = ''

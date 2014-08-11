@@ -52,3 +52,8 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# OWN STUFF
+config.py
+app/static/postcards/*.jpg
+*.bkp
+*.db
